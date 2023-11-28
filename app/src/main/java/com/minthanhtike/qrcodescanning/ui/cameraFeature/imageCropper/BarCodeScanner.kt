@@ -1,5 +1,6 @@
 package com.minthanhtike.qrcodescanning.ui.cameraFeature.imageCropper
 
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.mlkit.vision.barcode.BarcodeScanner
@@ -8,61 +9,43 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 
-class BarCodeScanner(
-    val callBack : (String, BarcodeScanner)->Unit
-):AppCompatActivity() {
-    fun scanBarcodes(image: InputImage) {
-        // [START set_detector_options]
+class BarCodeScanner {
+    var result = mutableListOf<String>()
+    fun scanBarcodes(image: InputImage, callBack: (String) -> Unit) {
+
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(
-                Barcode.FORMAT_QR_CODE,
-                Barcode.FORMAT_AZTEC)
+                Barcode.FORMAT_ALL_FORMATS
+            )
             .build()
-        // [END set_detector_options]
 
-        // [START get_detector]
-        val scanner = BarcodeScanning.getClient()
-        // Or, to specify the formats to recognize:
-        // val scanner = BarcodeScanning.getClient(options)
-        // [END get_detector]
+        val scanner = BarcodeScanning.getClient(options)
 
-        // [START run_detector]
-        val result = scanner.process(image)
-            .addOnSuccessListener { barcodes ->
-                // Task completed successfully
-                // [START_EXCLUDE]
-                // [START get_barcodes]
-                for (barcode in barcodes) {
-                    val bounds = barcode.boundingBox
-                    val corners = barcode.cornerPoints
-
-                    val rawValue= barcode.rawValue
-                    if (rawValue!=null)callBack(rawValue,scanner)
-                    val valueType = barcode.valueType
-                    // See API reference for complete list of supported types
-                    when (valueType) {
-                        Barcode.TYPE_WIFI -> {
-                            val ssid = barcode.wifi!!.ssid
-                            val password = barcode.wifi!!.password
-                            val type = barcode.wifi!!.encryptionType
-                        }
-                        Barcode.TYPE_URL -> {
-                            val title = barcode.url!!.title
-                            val url = barcode.url!!.url
-                        }
-                    }
-                }
-                // [END get_barcodes]
-                // [END_EXCLUDE]
+        scanner.process(image)
+            .addOnSuccessListener { barcodesList ->
+                processBarCode(barcodesList, scanner, callBack)
             }
             .addOnFailureListener {
-                // Task failed with an exception
-                // ...
+                Log.e("SCANFAILURE", "FAILSCAN")
             }
-        // [END run_detector]
-//        if (result.isComplete) {
-//            callBack(rawValue)
-//            scanner.close()
-//        }
+    }
+
+    private fun processBarCode(
+        barcodeList: List<Barcode>, scanner: BarcodeScanner,
+        callBack: (String) -> Unit
+    ) {
+        if (barcodeList.isNotEmpty()) {
+            for (barcode in barcodeList) {
+                if (barcode.rawValue?.isNotEmpty() == true) {
+                    result.add(barcode.rawValue!!)
+                    if (result.first().isNotEmpty()){
+                        callBack(result.first())
+                        result.clear()
+                        scanner.close()
+                        break
+                    }
+                }
+            }
+        }
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,21 +38,21 @@ import com.canhub.cropper.CropImage.CancelledResult.uriContent
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
+import com.google.mlkit.vision.barcode.BarcodeScanner
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.minthanhtike.qrcodescanning.R
+import kotlin.math.log
 
 @Composable
 fun ImageCropping() {
     val context = LocalContext.current
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var result by remember {
-        mutableStateOf<String>("")
-    }
-//    val barCodeScanner = BarCodeScanner(callBack = {
-//        result = it
-//
-//    })
+    var result by remember { mutableStateOf<String>("") }
+
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { cropResult ->
         if (cropResult.isSuccessful) {
             imageUri = cropResult.uriContent
@@ -79,12 +80,6 @@ fun ImageCropping() {
     ) {
         Row {
             if (bitmap != null) {
-                BarCodeScanner(
-                    callBack = {string,barcode->
-                        result=string
-                        barcode.close()
-                    }
-                ).scanBarcodes(InputImage.fromBitmap(bitmap!!, 0))
                 Image(
                     bitmap = bitmap?.asImageBitmap()!!,
                     contentDescription = null,
@@ -99,8 +94,14 @@ fun ImageCropping() {
                             shape = CircleShape
                         )
                 )
-                Log.d("ImageCroppingOfLay", "ImageCropping: $result")
-//                Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
+                val inputImage = InputImage.fromBitmap(bitmap!!, 0)
+                BarCodeScanner().scanBarcodes(inputImage) {
+                    result = it
+                }
+                if (result.isNotEmpty()){
+                    Text(text = result)
+                }
+                Log.d("MINTHANHTIKCROP", "ImageCropping: $result")
             } else {
                 Image(
                     painter = painterResource(id = R.drawable.baseline_person_24),
@@ -113,13 +114,6 @@ fun ImageCropping() {
                 )
             }
 
-//            Column(
-//                horizontalAlignment = Alignment.CenterHorizontally,
-//                verticalArrangement = Arrangement.Center,
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(bottom = 330.dp, start = 100.dp)
-//            ) {
             Image(
                 painter = painterResource(id = R.drawable.baseline_add_a_photo_24),
                 contentDescription = null,
@@ -138,4 +132,6 @@ fun ImageCropping() {
         }
 
     }
+
 }
+
